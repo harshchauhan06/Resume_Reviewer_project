@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM-Powered Resume Reviewer</title>
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <!-- Custom Styles (served from Flask static folder) -->
+    <link rel="stylesheet" href="../static/styles.css">
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Hero Section -->
+    <div class="hero-image relative overflow-hidden rounded-2xl mb-8 w-full max-w-5xl">
+        <img src="../static/resume.sample.jpg" alt="Modern professional workspace with resume lying around" class="w-full h-auto rounded-2xl" />
+        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-2xl">
+            <h1 class="text-white text-3xl md:text-4xl font-bold text-center">LLM-Powered Resume Reviewer</h1>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="glassmorphism p-8 rounded-2xl shadow-xl max-w-4xl w-full mb-8">
+        <p class="text-white text-center mb-6">
+            Upload your resume (PDF or paste text), specify the target job role, and get tailored feedback to improve your resume. Your data is processed securely and not stored.
+        </p>
+
+        <!-- Resume Input -->
+        <div class="section-card glassmorphism p-4 rounded-xl mb-4">
+            <label class="block text-white text-lg font-semibold mb-2">Resume Input</label>
+            <div class="flex mb-4">
+                <button id="pdfTab" class="flex-1 bg-white bg-opacity-20 text-white py-2 px-4 rounded-l-lg">Upload PDF</button>
+                <button id="textTab" class="flex-1 bg-white bg-opacity-10 text-white py-2 px-4 rounded-r-lg">Paste Text</button>
+            </div>
+
+            <!-- PDF Upload Section -->
+            <div id="pdfInput" class="input-section">
+                <input type="file" accept=".pdf" id="pdfUpload" class="block text-white">
+                <p id="pdfStatus" class="text-white mt-2"></p>
+            </div>
+
+            <!-- Text Paste Section -->
+            <div id="textInput" class="input-section hidden">
+                <textarea id="resumeText" placeholder="Paste your resume text here..." class="w-full h-48 p-2 border rounded bg-white bg-opacity-10 text-white placeholder-white"></textarea>
+            </div>
+        </div>
+
+        <!-- Job Role -->
+        <div class="section-card glassmorphism p-4 rounded-xl mb-4">
+            <label for="jobRole" class="block text-white text-lg font-semibold mb-2">Target Job Role</label>
+            <input type="text" id="jobRole" placeholder="e.g., Data Scientist, Product Manager" class="w-full p-2 border rounded bg-white bg-opacity-10 text-white placeholder-white">
+        </div>
+
+        <!-- Job Description (Optional) -->
+        <div class="section-card glassmorphism p-4 rounded-xl mb-4">
+            <label class="flex items-center text-white text-lg font-semibold mb-2">
+                <input type="checkbox" id="jobDescCheck" class="mr-2">
+                Provide Job Description (optional)
+            </label>
+            <textarea id="jobDescription" placeholder="Paste job description here..." class="w-full h-32 p-2 border rounded bg-white bg-opacity-10 text-white placeholder-white hidden"></textarea>
+        </div>
+
+        <!-- Generate Feedback Button -->
+        <button id="generateBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-4 rounded-xl floating font-semibold">
+            Get Feedback
+        </button>
+
+        <!-- Feedback Display -->
+        <div id="feedbackSection" class="section-card glassmorphism p-4 rounded-xl mt-8 hidden">
+            <h2 class="text-white text-xl font-bold mb-4">📝 Resume Feedback</h2>
+            <div id="feedbackContent" class="text-white"></div>
+        </div>
+
+        <!-- Privacy Disclaimer -->
+        <p class="text-white text-sm mt-4 opacity-70">
+            Disclaimer: This tool uses AI to provide feedback. Your resume data is processed in real-time and not stored. Always verify AI suggestions with professional advice.
+        </p>
+    </div>
+
+    <!-- Custom Script -->
+    <script src="../static/script.js"></script>
+</body>
+
+</html>
