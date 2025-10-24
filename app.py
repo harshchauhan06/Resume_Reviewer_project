@@ -9,23 +9,18 @@ import sys # Import sys for controlled exit
 # --- Configuration & Initialization ---
 
 # Tell Flask where to find templates (HTML) and static files (CSS/JS/images)
-# Based on your folder structure:
-# 'static' is next to 'app.py'
-# 'template' (or 'templates') is next to 'app.py'
 app = Flask(__name__, static_folder="static", template_folder="template")
 CORS(app)
 
-# Load Groq API key
+# Load Groq API key once globally
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 if not GROQ_API_KEY:
+    # This message will only appear in the Render logs if the key is missing
     print("=====================================================================")
     print("⚠️ CRITICAL ERROR: GROQ_API_KEY not set!")
-    print("Please set the environment variable and restart the application.")
-    print("Example: export GROQ_API_KEY='YOUR_KEY_HERE'")
+    print("Please set the environment variable in Render dashboard.")
     print("=====================================================================")
-# else:
-#     print("Loaded Groq API key:", GROQ_API_KEY[:8] + "****")
 
 
 # ----------------------------
@@ -37,17 +32,19 @@ def index():
     return render_template("index.html")
 
 
-
 # ----------------------------
 # Backend API
 # ----------------------------
 @app.route("/feedback", methods=["POST"])
 def feedback():
-    # 1. Check for API Key upfront
+    # The GROQ_API_KEY is accessible here from the global scope (defined above)
+
+    # 1. Check for API Key upfront. This handles the case where the key is truly missing.
     if not GROQ_API_KEY:
-        error_msg = "Server Configuration Error: GROQ_API_KEY is not set on the backend."
+        error_msg = "Server Configuration Error: LLM API Key is not configured."
         print(f"ERROR: {error_msg}")
-        return jsonify({"error": error_msg}), 503 # Service Unavailable
+        # Return a service unavailable status since the backend dependency is missing
+        return jsonify({"error": error_msg}), 503 
 
     try:
         data = request.get_json()
@@ -62,8 +59,8 @@ def feedback():
             return jsonify({"error": "Resume text and job role are required"}), 400
 
         # Clean text and truncate to fit context window
-        resume_text_clean = re.sub(r"\s+", " ", resume_text)[:6000] # Increased limit slightly
-        job_desc_clean = re.sub(r"\s+", " ", job_desc)[:2000]       # Increased limit slightly
+        resume_text_clean = re.sub(r"\s+", " ", resume_text)[:6000] 
+        job_desc_clean = re.sub(r"\s+", " ", job_desc)[:2000]       
 
         prompt = f"""
 You are a career coach AI assistant. Review the following resume text and provide detailed feedback tailored for the job role: {job_role}.
@@ -82,13 +79,14 @@ Analyze for:
 
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            # Key is used here. If it's incorrect, Groq returns a 401.
+            "Authorization": f"Bearer {GROQ_API_KEY}", 
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "llama-3.1-8b-instant", # Good choice for speed/cost
+            "model": "llama-3.1-8b-instant", 
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 1024, # Increased max_tokens for more detailed feedback
+            "max_tokens": 1024, 
             "temperature": 0.7
         }
 
@@ -97,6 +95,7 @@ Analyze for:
         print(f"Groq API call successful. Status: {response.status_code}")
 
         if response.status_code != 200:
+            # This handles the BAD KEY (401) or other Groq errors
             return jsonify({
                 "error": f"Groq API error {response.status_code}",
                 "details": response.text
@@ -117,13 +116,13 @@ Analyze for:
     except Exception as e:
         print("Exception occurred:", str(e))
         traceback.print_exc()
+        # This generic error should now appear in Render logs for debugging
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/ping")
 def ping():
     return "pong"
-
 
 
 # --- Application Runner ---
@@ -133,14 +132,13 @@ if __name__ == "__main__":
     try:
         import flask
         import requests
+        import gunicorn # Added gunicorn check since it's required for Render start command
     except ImportError:
         print("=====================================================================")
         print("FATAL ERROR: Missing required Python packages.")
-        print("Please run: pip install Flask flask-cors requests")
+        print("Please run: pip install Flask flask-cors requests gunicorn")
         print("=====================================================================")
         sys.exit(1)
 
     port = int(os.environ.get("PORT", 5000))
-    # Note: host="0.0.0.0" is correct for deployment/external access, 
-    # but for local development, it runs on http://127.0.0.1:5000
     app.run(host="0.0.0.0", port=port, debug=True)
