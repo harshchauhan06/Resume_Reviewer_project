@@ -106,7 +106,8 @@ async function generateFeedback() {
         console.log("Sending request to backend:", bodyData);
 
         // ✅ Localhost only (always points to Flask backend)
-        const API_BASE = "http://127.0.0.1:5000";
+        // Use the live Render URL for the deployed service
+        const API_BASE = "https://resume-reviewer-project.onrender.com";
 
         const response = await fetch(`${API_BASE}/feedback`, {
             method: "POST",
