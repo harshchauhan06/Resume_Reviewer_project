@@ -128,8 +128,12 @@ async function generateFeedback() {
             alert("Error: " + (data.error || "Unknown backend error"));
         }
     } catch (error) {
-        console.error(error);
-        alert("Error generating feedback. Backend may not be running.");
+        console.error("Fetch Error:", error);
+        // Try to get the specific error from the network response if available
+        const errorMessage = error.message.includes("Failed to fetch") ?
+            "Network connection error. Check your API_BASE URL or browser settings." :
+            error.message;
+        alert("Error: " + errorMessage + " Please check Render logs.");
     } finally {
         generateBtn.textContent = "Get Feedback";
         generateBtn.disabled = false;

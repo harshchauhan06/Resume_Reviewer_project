@@ -4,19 +4,20 @@ import requests
 import os
 import traceback
 import re
-import sys # Import sys for controlled exit
+import sys 
 
 # --- Configuration & Initialization ---
 
 # Tell Flask where to find templates (HTML) and static files (CSS/JS/images)
 app = Flask(__name__, static_folder="static", template_folder="template")
+# Allow all origins for the API calls from the frontend
 CORS(app)
 
 # Load Groq API key once globally
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 if not GROQ_API_KEY:
-    # This message will only appear in the Render logs if the key is missing
+    # This message will appear in the Render logs if the key is missing
     print("=====================================================================")
     print("⚠️ CRITICAL ERROR: GROQ_API_KEY not set!")
     print("Please set the environment variable in Render dashboard.")
@@ -37,13 +38,11 @@ def index():
 # ----------------------------
 @app.route("/feedback", methods=["POST"])
 def feedback():
-    # The GROQ_API_KEY is accessible here from the global scope (defined above)
-
-    # 1. Check for API Key upfront. This handles the case where the key is truly missing.
+    # 1. Check for API Key upfront. Handles the case where the key is truly missing.
     if not GROQ_API_KEY:
-        error_msg = "Server Configuration Error: LLM API Key is not configured."
+        error_msg = "Server Configuration Error: LLM API Key is not configured (Error 503)."
         print(f"ERROR: {error_msg}")
-        # Return a service unavailable status since the backend dependency is missing
+        # Return 503 (Service Unavailable) since the dependency is missing
         return jsonify({"error": error_msg}), 503 
 
     try:
@@ -92,15 +91,25 @@ Analyze for:
 
         # Use a timeout for the API call
         response = requests.post(url, headers=headers, json=payload, timeout=30)
-        print(f"Groq API call successful. Status: {response.status_code}")
-
+        
+        # --- CRITICAL ERROR HANDLING MODIFICATION ---
         if response.status_code != 200:
-            # This handles the BAD KEY (401) or other Groq errors
+            # Log the full error to Render logs
+            print(f"GROQ API AUTH/SERVER ERROR: Status {response.status_code}. Response: {response.text}") 
+            
+            # Extract a simplified message for the user if possible
+            try:
+                error_details = response.json().get('error', {}).get('message', response.text)
+            except:
+                error_details = response.text
+
             return jsonify({
-                "error": f"Groq API error {response.status_code}",
-                "details": response.text
+                "error": f"LLM Service Error: Status {response.status_code}",
+                "details": f"Check API key or service logs. Details: {error_details[:100]}..."
             }), 500
 
+        # --- Success Path ---
+        print(f"Groq API call successful. Status: {response.status_code}")
         result = response.json()
         if "choices" in result and result["choices"]:
             feedback_text = result["choices"][0]["message"]["content"]
@@ -114,10 +123,10 @@ Analyze for:
     except requests.exceptions.ConnectionError:
         return jsonify({"error": "Could not connect to Groq API endpoint."}), 503
     except Exception as e:
+        # Catch all other Python exceptions (e.g., JSON parse error)
         print("Exception occurred:", str(e))
         traceback.print_exc()
-        # This generic error should now appear in Render logs for debugging
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
 
 
 @app.route("/ping")
@@ -132,7 +141,7 @@ if __name__ == "__main__":
     try:
         import flask
         import requests
-        import gunicorn # Added gunicorn check since it's required for Render start command
+        import gunicorn 
     except ImportError:
         print("=====================================================================")
         print("FATAL ERROR: Missing required Python packages.")
